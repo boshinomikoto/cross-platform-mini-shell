@@ -62,12 +62,13 @@ int main()
   while (true) 
   {
       s = GetCurrentPath();
-      if(printf("\033[38;5;%dmsv@[%s]> \033[m", 226, s));
-
-    if (!fgets(parsedString, sizeof(parsedString), stdin))
-      break;
-    parsedString[strcspn(parsedString, "\n")] = '\0';
-    ParseString(parsedString);
+      if(printf("\033[38;5;%dmsv@[%s]> \033[m", 226, s))
+      {
+          if (!fgets(parsedString, sizeof(parsedString), stdin))
+              break;
+          parsedString[strcspn(parsedString, "\n")] = '\0';
+          ParseString(parsedString);
+      }
   }  
   free(s);
   return 0;
@@ -140,7 +141,7 @@ char* SplitString(int commandSize, char* str, char dest[])
     int i = commandSize;
     int j = 0;
    
-    for (i; str[i] != '\0'; i++)
+    for ( ; str[i] != '\0'; i++)
     {
         dest[j] = str[i];
         j++;
@@ -188,24 +189,24 @@ void FilesTree()
     FindClose(hFind);
 #else
     DIR* dir = opendir(".");
-    if (!dir) return;
+    if (!dir) { free(s); return; }
 
     struct dirent* entry;
     while ((entry = readdir(dir)) != NULL)
     {
-        struct stat st; //stat - info about file
-        if (stat(entry->d_name, &st) == 0 && S_ISDIR(st.st_mode) &&
-            strcmp(findData.cFileName, ".") != 0 &&
-            strcmp(findData.cFileName, "..") != 0)
+        struct stat st;
+        if (stat(entry->d_name, &st) == 0 &&
+            S_ISDIR(st.st_mode) &&
+            strcmp(entry->d_name, ".") != 0 &&
+            strcmp(entry->d_name, "..") != 0)
         {
             ChangeDirectory(entry->d_name);
-            FilesTree(); // рекурсивный вызов
-            ChangeDirectory(".."); 
+            FilesTree();
+            ChangeDirectory("..");
         }
     }
     closedir(dir);
 #endif
-
     free(s);
 }
 
