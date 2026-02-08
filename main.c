@@ -410,7 +410,7 @@ void List()
     {
         if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, ".."))
             continue;
-            
+
         struct stat st;
         if (stat(entry->d_name, &st) != 0)
             continue;
@@ -419,12 +419,14 @@ void List()
         if (stat(entry->d_name, &st) == 0 && S_ISDIR(st.st_mode))
             printf("\x1b[36m%-30s [D] %6lld B\x1b[0m\n", entry->d_name, size); // cyan
         else
+        {
             if(size < 1024)
                 printf("%-30s [F] %6lld B\n", entry->d_name, size);
             else if(size < 1024 * 1024)
                 printf("%-30s [F] %6.1f KB\n", entry->d_name, size / 1024.0);
             else
                 printf("%-30s [F] %6.1f MB\n", entry->d_name, size / (1024.0 * 1024.0));
+        }
 
     }
     closedir(dir);
