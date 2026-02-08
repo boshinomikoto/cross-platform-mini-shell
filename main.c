@@ -61,14 +61,12 @@ int main()
 
   while (true) 
   {
-      s = GetCurrentPath();
-      if(printf("\033[38;5;%dmsv@[%s]> \033[m", 226, s))
-      {
-          if (!fgets(parsedString, sizeof(parsedString), stdin))
-              break;
-          parsedString[strcspn(parsedString, "\n")] = '\0';
-          ParseString(parsedString);
-      }
+    s = GetCurrentPath();
+    printf("\033[38;5;%dmsv@[%s]> \033[m", 226, s);
+    if (!fgets(parsedString, sizeof(parsedString), stdin))
+        break;
+    parsedString[strcspn(parsedString, "\n")] = '\0';
+    ParseString(parsedString);
   }  
   free(s);
   return 0;
@@ -231,7 +229,7 @@ void ReadBinFiles(const char* filename)
     if (fp)
     {
         while ((c = getc(fp)) != EOF)
-            printf("%c", (unsigned char)c);
+            printf("%c", (char)c);
         printf("%c", '\n');
         fclose(fp);
     }
@@ -412,11 +410,22 @@ void List()
     {
         if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, ".."))
             continue;
-        struct stat st; //stat - info about file
+            
+        struct stat st;
+        if (stat(entry->d_name, &st) != 0)
+            continue;
+        long long size = (long long)st.st_size;
+
         if (stat(entry->d_name, &st) == 0 && S_ISDIR(st.st_mode))
-            printf("\x1b[36m%s\x1b[0m\n", entry->d_name); // cyan
+            printf("\x1b[36m%-30s [D] %6lld B\x1b[0m\n", entry->d_name, size); // cyan
         else
-            printf("%s\n", entry->d_name);
+            if(size < 1024)
+                printf("%-30s [F] %6lld B\n", entry->d_name, size);
+            else if(size < 1024 * 1024)
+                printf("%-30s [F] %6.1f KB\n", entry->d_name, size / 1024.0);
+            else
+                printf("%-30s [F] %6.1f MB\n", entry->d_name, size / (1024.0 * 1024.0));
+
     }
     closedir(dir);
 #endif
