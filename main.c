@@ -230,7 +230,7 @@ void ReadBinFiles(const char* filename)
     {
         while ((c = getc(fp)) != EOF)
             printf("%c", (char)c);
-        printf("%c", '\n');
+        printf("%c\n", '\n');
         fclose(fp);
     }
     else
