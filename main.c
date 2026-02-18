@@ -18,7 +18,7 @@
 
 //auxiliary functions
 void ParseString(char* str);
-void DelSpace(char* str);
+void DelSpace(char* str, int commandSize);
 char* SplitString(int size, char* str, char dest[]);
 void ShowBytes(char* filename);
 void FilesTree();
@@ -82,7 +82,7 @@ void ParseString(char* str)
     size_t len = strlen(str);
     if(commandSize > len) return;
 
-    DelSpace(str);
+    DelSpace(str, commandSize);
     char dest[(strlen(str) - commandSize) + 1];
     
     if (strcmp(str, "ls") == 0) List(); //ls
@@ -125,17 +125,22 @@ void ParseString(char* str)
     else if (strcmp(str, "") == 0) printf("%s", "");
     else printf("Unknown command\n");
 }
-void DelSpace(char* str)
+void DelSpace(char* str, int commandSize)
 {
-    int i, j = 0;
-    int len = strlen(str);
-    for (i = 0; i < len; ++i)
-    {
-        if (!isspace(str[i]))
-            str[j++] = str[i];
-    }
+    int i = commandSize;
+    // ищем первый пробел после команды
+    while (str[i] != ' ' && str[i] != '\0')
+        i++;
+    if (str[i] == '\0') return; // нет пробела
+    
+    // сдвигаем всё что после пробела
+    int j = i;
+    i++;
+    while (str[i] != '\0')
+        str[j++] = str[i++];
     str[j] = '\0';
 }
+
 char* SplitString(int commandSize, char* str, char dest[])
 {
     int i = commandSize;
