@@ -71,11 +71,20 @@ int main()
   free(s);
   return 0;
 }
-
+ //не нравится что непооучится работать с файлом если есть пробелы так как фуукнция delspace удаляет их
+ //формирования строки dest очень не удобная
 void ParseString(char* str)
 {
-    DelSpace(str);
+    if(str == NULL) return;
+    int commandSize = 0;
+    while(str[commandSize] != ' ' && str[commandSize] != '\0')
+        commandSize++;
+    size_t len = strlen(str);
+    if(commandSize > len) return;
 
+    DelSpace(str);
+    char dest[(strlen(str) - commandSize) + 1];
+    
     if (strcmp(str, "ls") == 0) List(); //ls
     else if (strcmp(str, "help") == 0) Help(); //help
     else if (strcmp(str, "exit") == 0) exit(0); //exit
@@ -85,38 +94,31 @@ void ParseString(char* str)
     else if (strcmp(str, "cwd") == 0) PrintCurrentPath(); //cwd
     else if (strncmp(str, "dir", 3) == 0) //dir
     {
-        char dest[strlen(str) - 2];
-        MakeDirectory(SplitString(3, str, dest));
+        MakeDirectory(SplitString(commandSize, str, dest));
     }
     else if (strncmp(str, "cd", 2) == 0) //cd
     {
-        char dest[strlen(str) - 1];
-        ChangeDirectory(SplitString(2, str, dest));
+        ChangeDirectory(SplitString(commandSize, str, dest));
     }
     else if (strncmp(str, "cat", 3) == 0) //cat
     {
-        char dest[strlen(str) - 2];
-        ShowInConsole(SplitString(3, str, dest));
+        ShowInConsole(SplitString(commandSize, str, dest));
     }
     else if (strncmp(str, "cf", 2) == 0) //cf 
     {
-        char dest[strlen(str) - 1];
-        CreateFiles(SplitString(2, str, dest));
+        CreateFiles(SplitString(commandSize, str, dest));
     }
     else if (strncmp(str, "bin", 3) == 0) //bin
     {
-        char dest[strlen(str) - 2];
-        ReadBinFiles(SplitString(3, str, dest));
+        ReadBinFiles(SplitString(commandSize, str, dest));
     }
     else if (strncmp(str, "s", 1) == 0) //size
     {
-        char dest[strlen(str)];
-        ShowBytes(SplitString(1, str, dest));
+        ShowBytes(SplitString(commandSize, str, dest));
     }
     else if (strncmp(str, "rm", 2) == 0) //remove
     {
-        char dest[strlen(str) - 1];
-        DeleteFiles(SplitString(2, str, dest));
+        DeleteFiles(SplitString(commandSize, str, dest));
     }
     else if (strncmp(str, "tree", 4) == 0) FilesTree(); //tree
 
