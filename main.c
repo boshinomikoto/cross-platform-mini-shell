@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <stdint.h>
+#include <time.h>
 
 #ifdef _WIN32
     #include <windows.h>
@@ -33,6 +34,7 @@ void ChangeDirectory(char* path);
 void MakeDirectory(const char* str);
 void PrintCurrentPath();
 char* GetCurrentPath(void);
+void GetLocalTime(void);
 void Clear();
 void List();
 void print_logo();
@@ -119,6 +121,7 @@ void ParseString(char* str)
         DeleteFiles(SplitString(commandSize, str, dest));
     }
     else if (strncmp(str, "tree", 4) == 0) FilesTree(); //tree
+    else if (strncmp(str, "date", 4) == 0) GetLocalTime(); //local time
 
     else if (strcmp(str, "") == 0) printf("%s", "");
     else printf("Unknown command\n");
@@ -353,6 +356,16 @@ char* GetCurrentPath(void)
     return path;
 #endif
 }
+void GetLocalTime(void)
+{
+    time_t rawtime;
+    struct tm *timeinfo;
+    char buffer[80];
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+    strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
+    printf("Local time: %s\n", buffer);
+}
 void Clear()
 {
 #ifdef _WIN32
@@ -467,5 +480,6 @@ void Help()
   printf("\t<bin>\tviewing binary files\n");
   printf("\t<s>\tcheck size of file\n");
   printf("\t<tree>\trecursively traverses all subdirectories\n");
+  printf("\t<date>\tget local time\n");
   printf("\t<exit>\tjust exit\n");
 }
