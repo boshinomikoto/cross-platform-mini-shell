@@ -26,6 +26,7 @@ The project is designed for educational purposes and focuses on understanding ho
 | `bin`   | View binary file contents        |
 | `s`     | Show file size                   |
 | `tree`  | Recursively traverse directories |
+| `date`  | Get local time                   |
 | `exit`  | Exit the shell                   |
 ## GCC
 ```
