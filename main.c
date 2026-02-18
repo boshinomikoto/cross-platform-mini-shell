@@ -71,8 +71,6 @@ int main()
   free(s);
   return 0;
 }
- //не нравится что непооучится работать с файлом если есть пробелы так как фуукнция delspace удаляет их
- //формирования строки dest очень не удобная
 void ParseString(char* str)
 {
     if(str == NULL) return;
@@ -128,12 +126,11 @@ void ParseString(char* str)
 void DelSpace(char* str, int commandSize)
 {
     int i = commandSize;
-    // ищем первый пробел после команды
+    // we look for the first space after the command
     while (str[i] != ' ' && str[i] != '\0')
         i++;
-    if (str[i] == '\0') return; // нет пробела
-    
-    // сдвигаем всё что после пробела
+    if (str[i] == '\0') return; // no space
+    // we shift everything after the space
     int j = i;
     i++;
     while (str[i] != '\0')
@@ -154,7 +151,6 @@ char* SplitString(int commandSize, char* str, char dest[])
     dest[j] = '\0';
 
     if (dest[0] == '\0') printf("No arguments");
-    
     return dest;
 }
 void ShowBytes(char* filename)
@@ -169,11 +165,9 @@ void FilesTree()
 {
     char* s = GetCurrentPath();
     List();
-
 #ifdef _WIN32
     WIN32_FIND_DATA findData;
     HANDLE hFind = FindFirstFile("*", &findData);
-
     if (hFind == INVALID_HANDLE_VALUE)
     {
         free(s);
@@ -190,7 +184,6 @@ void FilesTree()
             ChangeDirectory(".."); 
         }
     } while (FindNextFile(hFind, &findData));
-
     FindClose(hFind);
 #else
     DIR* dir = opendir(".");
