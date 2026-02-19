@@ -14,6 +14,7 @@
     #include <sys/stat.h>
     #include <unistd.h> // getcwd
     #include <limits.h> // PATH_MAX
+    #include <pwd.h>
     #define CLEAR_SCREEN "\033[2J\033[1;1H"
 #endif
 
@@ -22,6 +23,7 @@ void ParseString(char* str);
 void DelSpace(char* str, int commandSize);
 char* SplitString(int size, char* str, char dest[]);
 void ShowBytes(char* filename);
+char* GetUser();
 void FilesTree();
 
 //program functional 
@@ -57,19 +59,28 @@ int main()
         fprintf(stderr, "Failed to get path\n");
         return 1;
     }
+    char* username = GetUser();
+    if (!username)
+    {
+        fprintf(stderr, "Failed to get user\n");
+        return 1;
+    }
 
   print_logo();
   char parsedString[256];
 
   while (true) 
   {
+    free(s);
     s = GetCurrentPath();
-    printf("\033[38;5;%dmsv@[%s]> \033[m", 226, s);
+    printf("\033[38;5;%dm%s@[%s]> \033[m", 226, username, s);
+
     if (!fgets(parsedString, sizeof(parsedString), stdin))
         break;
     parsedString[strcspn(parsedString, "\n")] = '\0';
     ParseString(parsedString);
   }  
+  free(username);
   free(s);
   return 0;
 }
@@ -122,7 +133,7 @@ void ParseString(char* str)
     }
     else if (strncmp(str, "tree", 4) == 0) FilesTree(); //tree
     else if (strncmp(str, "date", 4) == 0) PrintLocalTime(); //local time
-
+    else if (strncmp(str, "user", 4) == 0) printf("%s\n", GetUser()); //local time
     else if (strcmp(str, "") == 0) printf("%s", "");
     else printf("Unknown command\n");
 }
@@ -209,6 +220,28 @@ void FilesTree()
     closedir(dir);
 #endif
     free(s);
+}
+char* GetUser()
+{
+#ifdef _WIN32
+    char* username = malloc(256);
+    DWORD size = 256;
+    if(GetUserName(username, &size))
+        return username;
+    free(username);
+    return NULL;
+
+#else
+    uid_t uid = getuid();
+    struct passwd *pw = getpwuid(uid);
+    if(!pw) return NULL;
+
+    char* username = malloc(strlen(pw->pw_name) + 1);
+    if (!username)
+        return NULL;
+    strcpy(username, pw->pw_name);
+    return username;
+#endif
 }
 
 uint64_t get_file_size(const char* filename)
