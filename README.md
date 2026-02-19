@@ -27,6 +27,7 @@ The project is designed for educational purposes and focuses on understanding ho
 | `s`     | Show file size                   |
 | `tree`  | Recursively traverse directories |
 | `date`  | Get local time                   |
+| `user`  | Get system user                  |
 | `exit`  | Exit the shell                   |
 ## GCC
 ```
