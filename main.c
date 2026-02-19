@@ -34,7 +34,7 @@ void ChangeDirectory(char* path);
 void MakeDirectory(const char* str);
 void PrintCurrentPath();
 char* GetCurrentPath(void);
-void GetLocalTime(void);
+void PrintLocalTime();
 void Clear();
 void List();
 void print_logo();
@@ -121,7 +121,7 @@ void ParseString(char* str)
         DeleteFiles(SplitString(commandSize, str, dest));
     }
     else if (strncmp(str, "tree", 4) == 0) FilesTree(); //tree
-    else if (strncmp(str, "date", 4) == 0) GetLocalTime(); //local time
+    else if (strncmp(str, "date", 4) == 0) PrintLocalTime(); //local time
 
     else if (strcmp(str, "") == 0) printf("%s", "");
     else printf("Unknown command\n");
@@ -356,7 +356,7 @@ char* GetCurrentPath(void)
     return path;
 #endif
 }
-void GetLocalTime(void)
+void PrintLocalTime()
 {
     time_t rawtime;
     struct tm *timeinfo;
