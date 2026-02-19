@@ -52,7 +52,6 @@ int main()
     SetConsoleOutputCP(1251);
     SetConsoleCP(1251);
 #endif
-
     char* s = GetCurrentPath();
     if (!s)
     {
@@ -63,7 +62,7 @@ int main()
     if (!username)
     {
         fprintf(stderr, "Failed to get user\n");
-        return 1;
+        username = "sv"; //default
     }
 
   print_logo();
@@ -73,7 +72,7 @@ int main()
   {
     free(s);
     s = GetCurrentPath();
-    printf("\033[38;5;%dm%s@[%s]> \033[m", 226, username, s);
+    printf("\033[38;5;%dm%s@[%s]> \033[m", 255, username, s);
 
     if (!fgets(parsedString, sizeof(parsedString), stdin))
         break;
@@ -514,5 +513,6 @@ void Help()
   printf("\t<s>\tcheck size of file\n");
   printf("\t<tree>\trecursively traverses all subdirectories\n");
   printf("\t<date>\tget local time\n");
+  printf("\t<user>\tget user\n");
   printf("\t<exit>\tjust exit\n");
 }
