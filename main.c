@@ -1,5 +1,5 @@
 ﻿#include <stdio.h>
-#include <stdbool.h> 
+#include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -7,24 +7,27 @@
 #include <time.h>
 
 #ifdef _WIN32
-    #include <windows.h>
-    #define CLEAR_SCREEN "cls"
+#include <windows.h>
+#define CLEAR_SCREEN "cls"
 #else
-    #include <dirent.h>
-    #include <sys/stat.h>
-    #include <unistd.h> // getcwd
-    #include <limits.h> // PATH_MAX
-    #define CLEAR_SCREEN "\033[2J\033[1;1H"
+#include <dirent.h>
+#include <sys/stat.h>
+#include <unistd.h> // getcwd
+#include <limits.h> // PATH_MAX
+#include <pwd.h>
+#define CLEAR_SCREEN "\033[2J\033[1;1H"
 #endif
 
+#define MAX_LINE 256
+#define MAX_ARGS 8
+
 //auxiliary functions
-void ParseString(char* str);
-void DelSpace(char* str, int commandSize);
-char* SplitString(int size, char* str, char dest[]);
+void ExecuteCommand(int argc, char* argv[]);
 void ShowBytes(char* filename);
+char* GetUser();
 void FilesTree();
 
-//program functional 
+//program functional
 uint64_t get_file_size(const char* path);
 void ReadBinFiles(const char* filename);
 void CreateFiles(const char* filename);
@@ -34,7 +37,7 @@ void ChangeDirectory(char* path);
 void MakeDirectory(const char* str);
 void PrintCurrentPath();
 char* GetCurrentPath(void);
-void GetLocalTime(void);
+void PrintLocalTime();
 void Clear();
 void List();
 void print_logo();
@@ -50,111 +53,114 @@ int main()
     SetConsoleOutputCP(1251);
     SetConsoleCP(1251);
 #endif
-
     char* s = GetCurrentPath();
     if (!s)
     {
         fprintf(stderr, "Failed to get path\n");
         return 1;
     }
+    char* username = GetUser();
+    if (!username)
+    {
+        username = malloc(3);
+        if (username) strcpy(username, "sv"); //default
+    }
 
-  print_logo();
-  char parsedString[256];
+    print_logo();
+    char line[MAX_LINE];
 
-  while (true) 
-  {
-    s = GetCurrentPath();
-    printf("\033[38;5;%dmsv@[%s]> \033[m", 226, s);
-    if (!fgets(parsedString, sizeof(parsedString), stdin))
-        break;
-    parsedString[strcspn(parsedString, "\n")] = '\0';
-    ParseString(parsedString);
-  }  
-  free(s);
-  return 0;
+    while (true)
+    {
+        free(s);
+        s = GetCurrentPath();
+        printf("\033[38;5;%dm%s@[%s]> \033[m", 226, username, s);
+
+        if (!fgets(line, sizeof(line), stdin))
+            break;
+        line[strcspn(line, "\n")] = '\0';
+
+        // build argc/argv from the entered line, just like a program
+        // receives its command-line arguments from the shell
+        int argc = 0;
+        char* argv[MAX_ARGS];
+        char* token = strtok(line, " ");
+        while (token != NULL && argc < MAX_ARGS)
+        {
+            argv[argc++] = token;
+            token = strtok(NULL, " ");
+        }
+
+        ExecuteCommand(argc, argv);
+    }
+
+    free(username);
+    free(s);
+    return 0;
 }
-void ParseString(char* str)
+void ExecuteCommand(int argc, char* argv[])
 {
-    if(str == NULL) return;
-    int commandSize = 0;
-    while(str[commandSize] != ' ' && str[commandSize] != '\0')
-        commandSize++;
-    size_t len = strlen(str);
-    if(commandSize > len) return;
+    if (argc == 0) return; // empty line
 
-    DelSpace(str, commandSize);
-    char dest[(strlen(str) - commandSize) + 1];
-    
-    if (strcmp(str, "ls") == 0) List(); //ls
-    else if (strcmp(str, "help") == 0) Help(); //help
-    else if (strcmp(str, "exit") == 0) exit(0); //exit
-    else if (strcmp(str, "sv-info") == 0) Sv_Info(); //sv-info
-    else if (strcmp(str, "sv-sh") == 0) Sv_Sh(); //sv-sh
-    else if (strcmp(str, "cl") == 0) Clear(); //cl
-    else if (strcmp(str, "cwd") == 0) PrintCurrentPath(); //cwd
-    else if (strncmp(str, "dir", 3) == 0) //dir
-    {
-        MakeDirectory(SplitString(commandSize, str, dest));
-    }
-    else if (strncmp(str, "cd", 2) == 0) //cd
-    {
-        ChangeDirectory(SplitString(commandSize, str, dest));
-    }
-    else if (strncmp(str, "cat", 3) == 0) //cat
-    {
-        ShowInConsole(SplitString(commandSize, str, dest));
-    }
-    else if (strncmp(str, "cf", 2) == 0) //cf 
-    {
-        CreateFiles(SplitString(commandSize, str, dest));
-    }
-    else if (strncmp(str, "bin", 3) == 0) //bin
-    {
-        ReadBinFiles(SplitString(commandSize, str, dest));
-    }
-    else if (strncmp(str, "s", 1) == 0) //size
-    {
-        ShowBytes(SplitString(commandSize, str, dest));
-    }
-    else if (strncmp(str, "rm", 2) == 0) //remove
-    {
-        DeleteFiles(SplitString(commandSize, str, dest));
-    }
-    else if (strncmp(str, "tree", 4) == 0) FilesTree(); //tree
-    else if (strncmp(str, "date", 4) == 0) GetLocalTime(); //local time
+    const char* command = argv[0];
+    const char* arg = (argc >= 2) ? argv[1] : NULL;
 
-    else if (strcmp(str, "") == 0) printf("%s", "");
-    else printf("Unknown command\n");
-}
-void DelSpace(char* str, int commandSize)
-{
-    int i = commandSize;
-    // we look for the first space after the command
-    while (str[i] != ' ' && str[i] != '\0')
-        i++;
-    if (str[i] == '\0') return; // no space
-    // we shift everything after the space
-    int j = i;
-    i++;
-    while (str[i] != '\0')
-        str[j++] = str[i++];
-    str[j] = '\0';
-}
-
-char* SplitString(int commandSize, char* str, char dest[])
-{
-    int i = commandSize;
-    int j = 0;
-   
-    for ( ; str[i] != '\0'; i++)
+    if (strcmp(command, "ls") == 0) List();
+    else if (strcmp(command, "help") == 0) Help();
+    else if (strcmp(command, "exit") == 0) exit(0);
+    else if (strcmp(command, "sv-info") == 0) Sv_Info();
+    else if (strcmp(command, "sv-sh") == 0) Sv_Sh();
+    else if (strcmp(command, "cl") == 0) Clear();
+    else if (strcmp(command, "cwd") == 0) PrintCurrentPath();
+    else if (strcmp(command, "tree") == 0) FilesTree();
+    else if (strcmp(command, "date") == 0) PrintLocalTime();
+    else if (strcmp(command, "user") == 0)
     {
-        dest[j] = str[i];
-        j++;
+        char* u = GetUser();
+        if (u)
+        {
+            printf("%s\n", u);
+            free(u);
+        }
+        else
+            fprintf(stderr, "Failed to get user\n");
     }
-    dest[j] = '\0';
-
-    if (dest[0] == '\0') printf("No arguments");
-    return dest;
+    else if (strcmp(command, "dir") == 0)
+    {
+        if (!arg) { printf("No arguments"); return; }
+        MakeDirectory(arg);
+    }
+    else if (strcmp(command, "cd") == 0)
+    {
+        if (!arg) { printf("No arguments"); return; }
+        ChangeDirectory((char*)arg);
+    }
+    else if (strcmp(command, "cat") == 0)
+    {
+        if (!arg) { printf("No arguments"); return; }
+        ShowInConsole(arg);
+    }
+    else if (strcmp(command, "cf") == 0)
+    {
+        if (!arg) { printf("No arguments"); return; }
+        CreateFiles(arg);
+    }
+    else if (strcmp(command, "bin") == 0)
+    {
+        if (!arg) { printf("No arguments"); return; }
+        ReadBinFiles(arg);
+    }
+    else if (strcmp(command, "s") == 0)
+    {
+        if (!arg) { printf("No arguments"); return; }
+        ShowBytes((char*)arg);
+    }
+    else if (strcmp(command, "rm") == 0)
+    {
+        if (!arg) { printf("No arguments"); return; }
+        DeleteFiles(arg);
+    }
+    else
+        printf("Unknown command\n");
 }
 void ShowBytes(char* filename)
 {
@@ -184,7 +190,7 @@ void FilesTree()
         {
             ChangeDirectory(findData.cFileName);
             FilesTree();  // рекурсивный вызов
-            ChangeDirectory(".."); 
+            ChangeDirectory("..");
         }
     } while (FindNextFile(hFind, &findData));
     FindClose(hFind);
@@ -210,6 +216,28 @@ void FilesTree()
 #endif
     free(s);
 }
+char* GetUser()
+{
+#ifdef _WIN32
+    char* username = malloc(256);
+    DWORD size = 256;
+    if (GetUserName(username, &size))
+        return username;
+    free(username);
+    return NULL;
+
+#else
+    uid_t uid = getuid();
+    struct passwd* pw = getpwuid(uid);
+    if (!pw) return NULL;
+
+    char* username = malloc(strlen(pw->pw_name) + 1);
+    if (!username)
+        return NULL;
+    strcpy(username, pw->pw_name);
+    return username;
+#endif
+}
 
 uint64_t get_file_size(const char* filename)
 {
@@ -223,7 +251,7 @@ uint64_t get_file_size(const char* filename)
     if (stat(filename, &st) != 0)
         return (uint64_t)-1;
     return (uint64_t)st.st_size;
-#endif 
+#endif
 }
 void ReadBinFiles(const char* filename)
 {
@@ -348,7 +376,7 @@ char* GetCurrentPath(void)
     {
         free(path);
         return NULL;
-    }  
+    }
     return path;
 #else
     char* path = getcwd(NULL, 0);
@@ -356,10 +384,10 @@ char* GetCurrentPath(void)
     return path;
 #endif
 }
-void GetLocalTime(void)
+void PrintLocalTime()
 {
     time_t rawtime;
-    struct tm *timeinfo;
+    struct tm* timeinfo;
     char buffer[80];
     time(&rawtime);
     timeinfo = localtime(&rawtime);
@@ -376,7 +404,7 @@ void Clear()
 }
 void List()
 {
-#ifdef _WIN32	
+#ifdef _WIN32
     WIN32_FIND_DATA findData;
     HANDLE hFind;
 
@@ -415,10 +443,10 @@ void List()
 
     FindClose(hFind);
 #else
-    DIR *dir = opendir(".");
+    DIR* dir = opendir(".");
     if (!dir) return;
 
-    struct dirent *entry;
+    struct dirent* entry;
     while ((entry = readdir(dir)) != NULL)
     {
         if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, ".."))
@@ -433,9 +461,9 @@ void List()
             printf("\x1b[36m%-30s [D] %6lld B\x1b[0m\n", entry->d_name, size); // cyan
         else
         {
-            if(size < 1024)
+            if (size < 1024)
                 printf("%-30s [F] %6lld B\n", entry->d_name, size);
-            else if(size < 1024 * 1024)
+            else if (size < 1024 * 1024)
                 printf("%-30s [F] %6.1f KB\n", entry->d_name, size / 1024.0);
             else
                 printf("%-30s [F] %6.1f MB\n", entry->d_name, size / (1024.0 * 1024.0));
@@ -447,14 +475,14 @@ void List()
 }
 void Sv_Info()
 {
-	printf("P.V 0.01.0\n");
-	printf("Information about sth\n");
+    printf("P.V 0.01.0\n");
+    printf("Information about sth\n");
 }
 int Sv_Sh()
 {
     return 0;
 }
-void print_logo() 
+void print_logo()
 {
     printf("  ____  __     __ \n");
     printf(" / ___| \\ \\   / / \n");
@@ -465,21 +493,22 @@ void print_logo()
 }
 void Help()
 {
-  printf("\nusage: sv [-sh] - command nothing to do\n");
-  printf("          [-info] - information about project\n\n\n");
-  printf("main possibilities:\n");
-  printf("\t<ls>\tdisplay directory contents\n");
-  printf("\t<cl>\tclear the console\n");
-  printf("\t<dir>\tcreate directory\n");
-  printf("\t<cwd>\tpath to the current directory\n");
-  printf("\t<cd>\tmove to another directory\n");
-  printf("\t<cd ..>\tgo up one directory \n");
-  printf("\t<cat>\tdisplay file contents in console\n");
-  printf("\t<cf>\tcreate files\n");
-  printf("\t<rm>\tdelete files\n");
-  printf("\t<bin>\tviewing binary files\n");
-  printf("\t<s>\tcheck size of file\n");
-  printf("\t<tree>\trecursively traverses all subdirectories\n");
-  printf("\t<date>\tget local time\n");
-  printf("\t<exit>\tjust exit\n");
+    printf("\nusage: sv [-sh] - command nothing to do\n");
+    printf("          [-info] - information about project\n\n\n");
+    printf("main possibilities:\n");
+    printf("\t<ls>\tdisplay directory contents\n");
+    printf("\t<cl>\tclear the console\n");
+    printf("\t<dir>\tcreate directory\n");
+    printf("\t<cwd>\tpath to the current directory\n");
+    printf("\t<cd>\tmove to another directory\n");
+    printf("\t<cd ..>\tgo up one directory \n");
+    printf("\t<cat>\tdisplay file contents in console\n");
+    printf("\t<cf>\tcreate files\n");
+    printf("\t<rm>\tdelete files\n");
+    printf("\t<bin>\tviewing binary files\n");
+    printf("\t<s>\tcheck size of file\n");
+    printf("\t<tree>\trecursively traverses all subdirectories\n");
+    printf("\t<date>\tget local time\n");
+    printf("\t<user>\tget user\n");
+    printf("\t<exit>\tjust exit\n");
 }
